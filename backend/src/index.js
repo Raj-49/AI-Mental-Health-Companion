@@ -8,7 +8,7 @@ dotenv.config();
 
 // Create Express app
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors());
@@ -21,8 +21,12 @@ app.use((req, res, next) => {
 });
 
 // Health check route
+app.get('/', (req, res) => {
+  res.send('API is running')  ;
+});
+
 app.get('/health', (req, res) => {
-  res.json({ status: 'lalala' });
+  res.json({ status: 'ok' });
 });
 
 // Initialize placeholder routers
