@@ -22,7 +22,7 @@ app.use((req, res, next) => {
 
 // Health check route
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
+  res.json({ status: 'lalala' });
 });
 
 // Initialize placeholder routers
