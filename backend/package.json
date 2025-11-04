@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "description": "AI Mental Health Companion Backend",
   "type": "module",
-  "main": "src/index.js",
+  "main": "api/index.js",
   "scripts": {
-    "dev": "nodemon src/index.js",
-    "start": "node src/index.js",
+    "dev": "nodemon api/index.js",
+    "start": "node api/index.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev"
   },
