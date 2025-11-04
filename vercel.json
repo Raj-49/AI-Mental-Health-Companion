@@ -11,9 +11,5 @@
       "src": "/(.*)",
       "dest": "backend/api/index.js"
     }
-  ],
-  "env": {
-    "DATABASE_URL": "@database_url",
-    "PORT": "3001"
-  }
+  ]
 }
