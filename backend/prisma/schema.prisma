@@ -1,6 +1,6 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
+// -----------------------------
+// PRISMA SCHEMA
+// -----------------------------
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,16 +10,136 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User model for authentication
-model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// ENUM TYPES
+enum SenderType {
+  user
+  ai
 }
 
-// Additional models will be added here in future iterations:
-// - Chat/Message models for conversation history
-// - UserProfile for mental health preferences and history
+enum ThemeType {
+  light
+  dark
+}
+
+enum AiToneType {
+  empathetic
+  neutral
+  motivational
+}
+
+// USERS TABLE
+model User {
+  id               Int                @id @default(autoincrement())
+  fullName         String?            @map("full_name")
+  email            String             @unique
+  passwordHash     String             @map("password_hash")
+  age              Int?
+  gender           String?
+  profileImageUrl  String?            @map("profile_image_url")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @default(now()) @updatedAt @map("updated_at")
+
+  // Relations
+  journals         Journal[]
+  moodLogs         MoodLog[]
+  aiSessions       AiSession[]
+  recommendations  Recommendation[]
+  therapyPlans     TherapyPlan[]
+  preferences      UserPreference?
+  insights         Insight[]
+}
+
+// JOURNAL ENTRIES
+model Journal {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @map("user_id")
+  title       String?
+  content     String?
+  mood        String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// MOOD LOGS
+model MoodLog {
+  id           Int       @id @default(autoincrement())
+  userId       Int       @map("user_id")
+  mood         String
+  energyLevel  Int        @map("energy_level")
+  stressLevel  Int        @map("stress_level")
+  note         String?
+  loggedAt     DateTime   @default(now()) @map("logged_at")
+
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// AI CHAT SESSIONS
+model AiSession {
+  id          Int           @id @default(autoincrement())
+  userId      Int           @map("user_id")
+  title       String?
+  startedAt   DateTime      @default(now()) @map("started_at")
+  endedAt     DateTime?     @map("ended_at")
+
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages    AiMessage[]
+}
+
+// AI MESSAGES
+model AiMessage {
+  id          Int           @id @default(autoincrement())
+  sessionId   Int           @map("session_id")
+  sender      SenderType
+  message     String
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  session     AiSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+// AI RECOMMENDATIONS
+model Recommendation {
+  id           Int        @id @default(autoincrement())
+  userId       Int        @map("user_id")
+  category     String?
+  title        String?
+  description  String?
+  createdAt    DateTime    @default(now()) @map("created_at")
+
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// THERAPY PLANS
+model TherapyPlan {
+  id              Int        @id @default(autoincrement())
+  userId          Int        @map("user_id")
+  goalTitle       String?    @map("goal_title")
+  goalDescription String?    @map("goal_description")
+  progress        Int        @default(0)
+  createdAt       DateTime   @default(now()) @map("created_at")
+
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// USER PREFERENCES
+model UserPreference {
+  id              Int          @id @default(autoincrement())
+  userId          Int          @unique @map("user_id")
+  theme           ThemeType    @default(light)
+  aiTone          AiToneType   @default(empathetic) @map("ai_tone")
+  dailyReminder   Boolean      @default(true) @map("daily_reminder")
+
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// INSIGHTS
+model Insight {
+  id                 Int        @id @default(autoincrement())
+  userId             Int        @map("user_id")
+  moodSummary        String?    @map("mood_summary")
+  journalingPattern  String?    @map("journaling_pattern")
+  aiSummary          String?    @map("ai_summary")
+  generatedAt        DateTime   @default(now()) @map("generated_at")
+
+  user               User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
