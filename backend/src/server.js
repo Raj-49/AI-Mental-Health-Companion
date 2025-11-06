@@ -58,3 +58,5 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
+// Export app for Vercel serverless functions
+export default app;

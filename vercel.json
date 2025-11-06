@@ -1,27 +1,19 @@
 {
   "version": 2,
+  "name": "ai-mental-health-companion",
   "builds": [
-    {
-      "src": "backend/src/server.js",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": ["backend/**", "backend/prisma/**", "backend/package.json"]
-      }
-    },
     {
       "src": "frontend/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist",
-        "buildCommand": "npm run build"
+        "distDir": "frontend/dist"
       }
     }
   ],
   "routes": [
-    
-    { "src": "/api/(.*)", "dest": "/backend/src/server.js" },
-    
-    
-    { "src": "/(.*)", "dest": "/frontend/dist/index.html" }
+    {
+      "src": "/(.*)",
+      "dest": "/frontend/dist/$1"
+    }
   ]
 }
