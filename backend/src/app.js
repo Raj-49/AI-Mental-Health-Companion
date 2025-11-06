@@ -53,9 +53,14 @@ const corsOptions = {
   credentials: true, // Allow cookies
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Set-Cookie'],
   optionsSuccessStatus: 200,
+  preflightContinue: false,
 };
 app.use(cors(corsOptions));
+
+// Handle preflight requests explicitly
+app.options('*', cors(corsOptions));
 
 // Cookie parser middleware (for refresh tokens)
 app.use(cookieParser());
