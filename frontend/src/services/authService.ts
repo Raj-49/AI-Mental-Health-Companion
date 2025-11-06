@@ -10,7 +10,7 @@
  * - Get User Profile
  */
 
-import axiosClient, { setTokens, clearTokens } from '../lib/axiosClient';
+import axiosClient, { setAccessToken, clearTokens } from '../lib/axiosClient';
 
 export interface User {
   id: string;
@@ -74,8 +74,8 @@ export const register = async (data: RegisterData): Promise<AuthResponse> => {
     },
   });
 
-  // Store tokens after successful registration
-  setTokens(response.data.token, response.data.refreshToken);
+  // Store access token after successful registration (refresh token in httpOnly cookie)
+  setAccessToken(response.data.token);
 
   return response.data;
 };
@@ -84,21 +84,28 @@ export const register = async (data: RegisterData): Promise<AuthResponse> => {
  * Login user
  * POST /api/auth/login
  */
-export const login = async (data: LoginData): Promise<AuthResponse> => {
+export const login = async (data: LoginData & { rememberMe?: boolean }): Promise<AuthResponse> => {
   const response = await axiosClient.post<AuthResponse>('/auth/login', data);
 
-  // Store tokens after successful login
-  setTokens(response.data.token, response.data.refreshToken);
+  // Store access token after successful login (refresh token in httpOnly cookie)
+  setAccessToken(response.data.token);
 
   return response.data;
 };
 
 /**
  * Logout user
- * Clears tokens from storage
+ * POST /api/auth/logout
+ * Clears tokens from storage and server
  */
-export const logout = (): void => {
-  clearTokens();
+export const logout = async (): Promise<void> => {
+  try {
+    await axiosClient.post('/auth/logout');
+  } catch (error) {
+    console.error('Logout API error:', error);
+  } finally {
+    clearTokens();
+  }
 };
 
 /**
@@ -118,18 +125,6 @@ export const resetPassword = async (data: ResetPasswordData): Promise<{ message:
   const response = await axiosClient.post<{ message: string }>(
     `/auth/reset-password?token=${data.token}`,
     { password: data.password }
-  );
-  return response.data;
-};
-
-/**
- * Refresh access token
- * POST /api/auth/refresh
- */
-export const refreshAccessToken = async (refreshToken: string): Promise<{ accessToken: string; refreshToken?: string }> => {
-  const response = await axiosClient.post<{ accessToken: string; refreshToken?: string }>(
-    '/auth/refresh',
-    { refreshToken }
   );
   return response.data;
 };
@@ -174,7 +169,6 @@ export default {
   logout,
   forgotPassword,
   resetPassword,
-  refreshAccessToken,
   getUserProfile,
   updateUserProfile,
 };

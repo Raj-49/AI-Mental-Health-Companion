@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link, useNavigate } from "react-router-dom";
 import { Brain } from "lucide-react";
@@ -15,6 +16,7 @@ const Login = () => {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
+    rememberMe: false,
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -89,6 +91,22 @@ const Login = () => {
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
               />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="rememberMe" 
+                checked={formData.rememberMe}
+                onCheckedChange={(checked) => 
+                  setFormData({ ...formData, rememberMe: checked as boolean })
+                }
+              />
+              <Label 
+                htmlFor="rememberMe" 
+                className="text-sm font-normal cursor-pointer"
+              >
+                Remember me for 30 days
+              </Label>
             </div>
 
             <Button type="submit" className="w-full" size="lg" disabled={isLoading}>

@@ -1,4 +1,4 @@
-const nodemailer = require('nodemailer');
+import nodemailer from 'nodemailer';
 
 // Create reusable transporter using SMTP configuration
 const transporter = nodemailer.createTransport({
@@ -295,7 +295,7 @@ const sendWelcomeEmail = async (to, userName) => {
   }
 };
 
-module.exports = {
+export {
   sendPasswordResetEmail,
   sendWelcomeEmail,
 };

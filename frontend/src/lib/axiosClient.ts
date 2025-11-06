@@ -5,12 +5,13 @@
  * - Base URL from environment variables
  * - Request interceptor to attach access token
  * - Response interceptor to handle token refresh on 401 errors
+ * - Automatic token refresh using httpOnly cookies
  */
 
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { jwtDecode } from 'jwt-decode';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
 // Create axios instance
 const axiosClient = axios.create({
@@ -18,42 +19,30 @@ const axiosClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Enable sending cookies (for refresh token if using httpOnly cookies)
+  withCredentials: true, // Enable sending cookies (for httpOnly refresh token)
 });
 
-// Token management in memory
+// Token management in memory (only access token now)
 let accessToken: string | null = null;
-let refreshToken: string | null = null;
 
-// Initialize tokens from localStorage on app load
+// Initialize token from localStorage on app load
 export const initializeTokens = () => {
   accessToken = localStorage.getItem('accessToken');
-  refreshToken = localStorage.getItem('refreshToken');
 };
 
-// Set tokens (called after login/register)
-export const setTokens = (access: string, refresh?: string) => {
-  accessToken = access;
-  localStorage.setItem('accessToken', access);
-  
-  if (refresh) {
-    refreshToken = refresh;
-    localStorage.setItem('refreshToken', refresh);
-  }
+// Set access token (called after login/register)
+export const setAccessToken = (token: string) => {
+  accessToken = token;
+  localStorage.setItem('accessToken', token);
 };
 
 // Get access token
 export const getAccessToken = () => accessToken;
 
-// Get refresh token
-export const getRefreshToken = () => refreshToken;
-
 // Clear tokens (called on logout)
 export const clearTokens = () => {
   accessToken = null;
-  refreshToken = null;
   localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
 };
 
 // Check if token is expired
@@ -61,33 +50,34 @@ const isTokenExpired = (token: string): boolean => {
   try {
     const decoded: { exp: number } = jwtDecode(token);
     const currentTime = Date.now() / 1000;
-    return decoded.exp < currentTime;
+    // Consider token expired if less than 1 minute remaining
+    return decoded.exp < currentTime + 60;
   } catch {
     return true;
   }
 };
 
-// Refresh access token
+// Refresh access token using httpOnly cookie
 const refreshAccessToken = async (): Promise<string | null> => {
   try {
-    const refresh = getRefreshToken();
-    if (!refresh) {
-      throw new Error('No refresh token available');
-    }
+    // Call refresh endpoint (refresh token sent automatically via httpOnly cookie)
+    const response = await axios.post(
+      `${API_BASE_URL}/auth/refresh`,
+      {},
+      { withCredentials: true }
+    );
 
-    // Call refresh token endpoint
-    const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-      refreshToken: refresh,
-    });
-
-    const newAccessToken = response.data.accessToken;
-    setTokens(newAccessToken, response.data.refreshToken || refresh);
+    const newAccessToken = response.data.token;
+    setAccessToken(newAccessToken);
     
     return newAccessToken;
   } catch (error) {
+    console.error('Token refresh failed:', error);
     clearTokens();
-    // Redirect to login or trigger logout
-    window.location.href = '/login';
+    // Redirect to login
+    if (window.location.pathname !== '/login') {
+      window.location.href = '/login';
+    }
     return null;
   }
 };
@@ -99,7 +89,7 @@ axiosClient.interceptors.request.use(
 
     // Check if token exists and is expired
     if (token && isTokenExpired(token)) {
-      // Try to refresh token
+      console.log('Access token expired, refreshing...');
       token = await refreshAccessToken();
     }
 

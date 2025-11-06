@@ -40,8 +40,15 @@ const startServer = async () => {
   }
 };
 
-// Start the server
-startServer();
+// Only start server if not running on Vercel serverless
+if (NODE_ENV !== 'production' || process.env.VERCEL !== '1') {
+  startServer();
+} else {
+  // On Vercel, just ensure database connection
+  prisma.$connect()
+    .then(() => console.log('✓ Database connected (Vercel serverless mode)'))
+    .catch((error) => console.error('❌ Database connection failed:', error));
+}
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
