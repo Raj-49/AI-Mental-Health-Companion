@@ -7,6 +7,7 @@
 
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import errorHandler from './middlewares/errorHandler.js';
@@ -41,6 +42,9 @@ const corsOptions = {
   optionsSuccessStatus: 200,
 };
 app.use(cors(corsOptions));
+
+// Cookie parser middleware (for refresh tokens)
+app.use(cookieParser());
 
 // Body parser middleware
 app.use(express.json({ limit: '10mb' }));

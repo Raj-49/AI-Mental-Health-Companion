@@ -7,10 +7,11 @@
  */
 
 import express from 'express';
-import { register, login, updateUser, forgotPassword, resetPassword } from '../controllers/authController.js';
+import { register, login, updateUser, forgotPassword, resetPassword, refreshAccessToken, logout } from '../controllers/authController.js';
 import { validateRegister, validateLogin } from '../validators/userValidator.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import upload from '../middlewares/upload.js';
+import { authLimiter, passwordResetLimiter } from '../middlewares/rateLimiter.js';
 
 const router = express.Router();
 
@@ -24,15 +25,17 @@ const router = express.Router();
  *   - age (optional)
  *   - gender (optional)
  *   - profileImage (optional, file)
+ * Rate limited: 5 requests per 15 minutes per IP
  */
-router.post('/register', upload.single('profileImage'), validateRegister, register);
+router.post('/register', authLimiter, upload.single('profileImage'), validateRegister, register);
 
 /**
  * POST /api/auth/login
  * Login user and receive JWT token
  * Body (JSON): { email, password }
+ * Rate limited: 5 requests per 15 minutes per IP
  */
-router.post('/login', validateLogin, login);
+router.post('/login', authLimiter, validateLogin, login);
 
 /**
  * PUT /api/auth/update-profile
@@ -50,15 +53,31 @@ router.put('/update-profile', authMiddleware, upload.single('profileImage'), upd
  * POST /api/auth/forgot-password
  * Request password reset email
  * Body (JSON): { email }
+ * Rate limited: 3 requests per hour per IP
  */
-router.post('/forgot-password', forgotPassword);
+router.post('/forgot-password', passwordResetLimiter, forgotPassword);
 
 /**
  * POST /api/auth/reset-password
  * Reset password with token
  * Query: ?token=<reset_token>
  * Body (JSON): { password }
+ * Rate limited: 3 requests per hour per IP
  */
-router.post('/reset-password', resetPassword);
+router.post('/reset-password', passwordResetLimiter, resetPassword);
+
+/**
+ * POST /api/auth/refresh
+ * Refresh access token using refresh token from httpOnly cookie
+ * No body required - reads from cookie
+ */
+router.post('/refresh', refreshAccessToken);
+
+/**
+ * POST /api/auth/logout
+ * Logout user and clear refresh token
+ * Protected route - requires JWT authentication
+ */
+router.post('/logout', authMiddleware, logout);
 
 export default router;

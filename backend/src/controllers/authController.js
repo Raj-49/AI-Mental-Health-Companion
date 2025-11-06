@@ -8,9 +8,10 @@
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import prisma from '../config/prismaClient.js';
-import { signToken } from '../utils/jwt.js';
+import { signToken, signRefreshToken, verifyToken } from '../utils/jwt.js';
 import cloudinary from '../config/cloudinary.js';
 import streamifier from 'streamifier';
+import { sendPasswordResetEmail, sendWelcomeEmail } from '../utils/emailService.js';
 
 /**
  * Upload image buffer to Cloudinary (stream-based for Vercel)
@@ -85,12 +86,32 @@ export const register = async (req, res, next) => {
       },
     });
 
-    // JWT token
-    const token = signToken({ userId: user.id, email: user.email });
+    // Create tokens
+    const accessToken = signToken({ userId: user.id, email: user.email });
+    const refreshToken = signRefreshToken({ userId: user.id });
+
+    // Store refresh token in database
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { refreshToken },
+    });
+
+    // Set refresh token as httpOnly cookie
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    // Send welcome email (non-blocking)
+    sendWelcomeEmail(user.email, user.fullName).catch(err => {
+      console.error('Failed to send welcome email:', err);
+    });
 
     res.status(201).json({
       message: 'User registered successfully.',
-      token,
+      token: accessToken,
       user,
     });
   } catch (error) {
@@ -104,15 +125,39 @@ export const register = async (req, res, next) => {
  */
 export const login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, rememberMe } = req.body;
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) return res.status(401).json({ error: 'Invalid email or password.' });
 
+    // Check if user registered via OAuth (no password)
+    if (!user.passwordHash) {
+      return res.status(401).json({ 
+        error: 'This account was created with Google Sign-In. Please use Google to log in.' 
+      });
+    }
+
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) return res.status(401).json({ error: 'Invalid email or password.' });
 
-    const token = signToken({ userId: user.id, email: user.email });
+    // Create tokens
+    const accessToken = signToken({ userId: user.id, email: user.email });
+    const refreshToken = signRefreshToken({ userId: user.id }, rememberMe);
+
+    // Store refresh token in database
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { refreshToken },
+    });
+
+    // Set refresh token as httpOnly cookie
+    const maxAge = rememberMe ? 30 * 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge,
+    });
 
     const userResponse = {
       id: user.id,
@@ -127,7 +172,7 @@ export const login = async (req, res, next) => {
 
     res.status(200).json({
       message: 'Login successful.',
-      token,
+      token: accessToken,
       user: userResponse,
     });
   } catch (error) {
@@ -212,17 +257,17 @@ export const forgotPassword = async (req, res, next) => {
       },
     });
 
-    // In production, send email with reset link
-    // For now, we'll return the token (in production, this should be sent via email)
-    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
-    
-    // TODO: Implement email sending using nodemailer or similar service
-    console.log('Password reset URL:', resetUrl);
+    // Send password reset email
+    try {
+      await sendPasswordResetEmail(user.email, resetToken, user.fullName);
+      console.log('Password reset email sent successfully to:', user.email);
+    } catch (emailError) {
+      console.error('Failed to send password reset email:', emailError);
+      // Still return success to avoid revealing if user exists
+    }
     
     res.status(200).json({ 
-      message: 'Password reset link has been sent to your email.',
-      // Remove this in production - only for development
-      resetUrl: process.env.NODE_ENV === 'development' ? resetUrl : undefined,
+      message: 'If an account with that email exists, a password reset link has been sent.',
     });
   } catch (error) {
     next(error);
@@ -275,6 +320,83 @@ export const resetPassword = async (req, res, next) => {
 
     res.status(200).json({ 
       message: 'Password has been reset successfully. You can now log in with your new password.' 
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Refresh Access Token
+ * POST /api/auth/refresh
+ */
+export const refreshAccessToken = async (req, res, next) => {
+  try {
+    const { refreshToken } = req.cookies;
+
+    if (!refreshToken) {
+      return res.status(401).json({ error: 'Refresh token not found. Please log in again.' });
+    }
+
+    // Verify refresh token
+    let decoded;
+    try {
+      decoded = verifyToken(refreshToken);
+    } catch (error) {
+      return res.status(401).json({ error: 'Invalid or expired refresh token. Please log in again.' });
+    }
+
+    // Check if refresh token matches in database
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: {
+        id: true,
+        email: true,
+        refreshToken: true,
+      },
+    });
+
+    if (!user || user.refreshToken !== refreshToken) {
+      return res.status(401).json({ error: 'Invalid refresh token. Please log in again.' });
+    }
+
+    // Generate new access token
+    const newAccessToken = signToken({ userId: user.id, email: user.email });
+
+    res.status(200).json({
+      message: 'Access token refreshed successfully.',
+      token: newAccessToken,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Logout user
+ * POST /api/auth/logout
+ */
+export const logout = async (req, res, next) => {
+  try {
+    const userId = req.user?.userId;
+
+    // Clear refresh token from database
+    if (userId) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { refreshToken: null },
+      });
+    }
+
+    // Clear refresh token cookie
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    });
+
+    res.status(200).json({
+      message: 'Logged out successfully.',
     });
   } catch (error) {
     next(error);

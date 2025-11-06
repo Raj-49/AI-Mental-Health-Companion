@@ -2,22 +2,36 @@
  * JWT Utility Functions
  * 
  * Provides helper functions for signing and verifying JSON Web Tokens (JWT).
- * Tokens are used for user authentication and authorization.
+ * Supports both access tokens (short-lived) and refresh tokens (long-lived).
  */
 
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-change-in-production';
-const JWT_EXPIRES_IN = '7d'; // Token expires in 7 days
+const JWT_EXPIRY = process.env.JWT_EXPIRY || '15m'; // Access token: 15 minutes
+const JWT_REFRESH_EXPIRY = process.env.JWT_REFRESH_EXPIRY || '7d'; // Refresh token: 7 days
 
 /**
- * Signs a JWT token with the provided payload
+ * Signs an access token with the provided payload
  * @param {Object} payload - Data to encode in the token (e.g., { userId, email })
- * @returns {String} Signed JWT token
+ * @returns {String} Signed JWT access token
  */
 export const signToken = (payload) => {
   return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN,
+    expiresIn: JWT_EXPIRY,
+  });
+};
+
+/**
+ * Signs a refresh token with the provided payload
+ * @param {Object} payload - Data to encode in the token (e.g., { userId })
+ * @param {Boolean} rememberMe - If true, extends token lifetime to 30 days
+ * @returns {String} Signed JWT refresh token
+ */
+export const signRefreshToken = (payload, rememberMe = false) => {
+  const expiresIn = rememberMe ? '30d' : JWT_REFRESH_EXPIRY;
+  return jwt.sign(payload, JWT_SECRET, {
+    expiresIn,
   });
 };
 
