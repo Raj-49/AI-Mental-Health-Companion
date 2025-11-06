@@ -38,6 +38,11 @@ const corsOptions = {
     // Allow requests with no origin (like mobile apps, Postman, or curl requests)
     if (!origin) return callback(null, true);
     
+    // Allow all Vercel preview deployments
+    if (origin && origin.includes('.vercel.app')) {
+      return callback(null, true);
+    }
+    
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
