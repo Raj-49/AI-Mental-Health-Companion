@@ -7,7 +7,7 @@
  */
 
 import express from 'express';
-import { register, login, updateUser } from '../controllers/authController.js';
+import { register, login, updateUser, forgotPassword, resetPassword } from '../controllers/authController.js';
 import { validateRegister, validateLogin } from '../validators/userValidator.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import upload from '../middlewares/upload.js';
@@ -45,5 +45,20 @@ router.post('/login', validateLogin, login);
  *   - profileImage (optional, file)
  */
 router.put('/update-profile', authMiddleware, upload.single('profileImage'), updateUser);
+
+/**
+ * POST /api/auth/forgot-password
+ * Request password reset email
+ * Body (JSON): { email }
+ */
+router.post('/forgot-password', forgotPassword);
+
+/**
+ * POST /api/auth/reset-password
+ * Reset password with token
+ * Query: ?token=<reset_token>
+ * Body (JSON): { password }
+ */
+router.post('/reset-password', resetPassword);
 
 export default router;

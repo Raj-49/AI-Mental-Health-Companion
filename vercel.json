@@ -7,9 +7,21 @@
       "config": {
         "includeFiles": ["backend/**", "backend/prisma/**", "backend/package.json"]
       }
+    },
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist",
+        "buildCommand": "npm run build"
+      }
     }
   ],
   "routes": [
-    { "src": "/(.*)", "dest": "backend/src/server.js" }
+    
+    { "src": "/api/(.*)", "dest": "backend/src/server.js" },
+    
+    
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
