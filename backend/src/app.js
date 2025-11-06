@@ -18,49 +18,30 @@ const app = express();
 // Track server start time for uptime calculation
 const startTime = Date.now();
 
-// CORS configuration
-// Support both local and production frontend URLs
-const allowedOrigins = [
-  'http://localhost:5173',  // Vite default
-  'http://localhost:3000',  // Local frontend
-  'https://ai-mental-health-companion-eivj.vercel.app', // Production frontend
-  process.env.LOCAL_FRONTEND_URL,
-  process.env.PRODUCTION_FRONTEND_URL,
-  process.env.FRONTEND_URL,
-  // Also support comma-separated CORS_ORIGIN for backward compatibility
-  ...(process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',').map(o => o.trim()) : [])
-].filter(Boolean);
+// CORS configuration - Allow all origins in production for now (will restrict later)
+console.log('Environment:', process.env.NODE_ENV);
+console.log('Vercel:', process.env.VERCEL);
 
-console.log('Allowed CORS origins:', allowedOrigins);
-
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps, Postman, or curl requests)
-    if (!origin) return callback(null, true);
-    
-    // Allow all Vercel preview deployments
-    if (origin && origin.includes('.vercel.app')) {
-      return callback(null, true);
-    }
-    
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.log('CORS blocked origin:', origin);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true, // Allow cookies
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  exposedHeaders: ['Set-Cookie'],
-  optionsSuccessStatus: 200,
-  preflightContinue: false,
-};
-app.use(cors(corsOptions));
-
-// Handle preflight requests explicitly
-app.options('*', cors(corsOptions));
+// Simple CORS for debugging - allow all Vercel domains
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  // Allow all Vercel domains and localhost
+  if (!origin || origin.includes('.vercel.app') || origin.includes('localhost')) {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
+    res.header('Access-Control-Expose-Headers', 'Set-Cookie');
+  }
+  
+  // Handle preflight
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  
+  next();
+});
 
 // Cookie parser middleware (for refresh tokens)
 app.use(cookieParser());
