@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import DashboardSidebar from "@/components/DashboardSidebar";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import ProfileAvatar from "@/components/ProfileAvatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MessageCircle, Sparkles } from "lucide-react";
@@ -8,33 +8,26 @@ import { useAuth } from "@/hooks/useAuth";
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const [userName, setUserName] = useState("User");
-  const [userImageUrl, setUserImageUrl] = useState<string | null>(null);
   
   const currentHour = new Date().getHours();
   
+  // Log user data for debugging
   useEffect(() => {
-    if (user) {
-      setUserName(user.fullName || user.email.split('@')[0] || "User");
-      setUserImageUrl(user.profileImageUrl);
-    }
+    console.log('Dashboard: User data updated:', {
+      id: user?.id,
+      email: user?.email,
+      fullName: user?.fullName,
+      profileImageUrl: user?.profileImageUrl,
+    });
   }, [user]);
+  
+  // Derive values directly from user prop
+  const userName = user?.fullName || user?.email?.split('@')[0] || "User";
   
   const getGreeting = () => {
     if (currentHour < 12) return "Good morning";
     if (currentHour < 18) return "Good afternoon";
     return "Good evening";
-  };
-
-  const getUserInitials = () => {
-    if (user?.fullName) {
-      const names = user.fullName.split(' ');
-      if (names.length >= 2) {
-        return `${names[0][0]}${names[1][0]}`.toUpperCase();
-      }
-      return names[0][0].toUpperCase();
-    }
-    return userName[0].toUpperCase();
   };
 
   return (
@@ -44,14 +37,14 @@ const Dashboard = () => {
       <main className="flex-1 overflow-auto">
         <div className="container mx-auto p-6 md:p-10 max-w-6xl">
           {/* Header Section */}
-          <div className="flex items-center gap-6 mb-8">
-            <Avatar className="w-20 h-20 border-2 border-primary">
-              <AvatarImage src={userImageUrl || ""} alt={userName} />
-              <AvatarFallback className="bg-primary/10 text-primary text-2xl font-semibold">
-                {getUserInitials()}
-              </AvatarFallback>
-            </Avatar>
-            
+          <div className="flex items-center gap-6">
+            <ProfileAvatar
+              imageUrl={user?.profileImageUrl}
+              userName={user?.fullName}
+              userEmail={user?.email}
+              size="xl"
+              className="border-2 border-primary"
+            />
             <div>
               <h1 className="text-3xl md:text-4xl font-bold text-foreground">
                 {getGreeting()}, {userName}!

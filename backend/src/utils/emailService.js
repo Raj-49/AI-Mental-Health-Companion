@@ -28,12 +28,20 @@ transporter.verify((error, success) => {
  */
 const sendPasswordResetEmail = async (to, resetToken, userName) => {
   try {
+    console.log('\n--- Preparing password reset email ---');
+    console.log('Recipient:', to);
+    console.log('Username:', userName);
+    console.log('NODE_ENV:', process.env.NODE_ENV);
+    
     // Determine frontend URL based on environment
     const frontendUrl = process.env.NODE_ENV === 'production' 
       ? process.env.PRODUCTION_FRONTEND_URL 
       : process.env.LOCAL_FRONTEND_URL || 'http://localhost:3000';
 
+    console.log('Frontend URL:', frontendUrl);
+
     const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
+    console.log('Reset URL:', resetUrl);
     
     const mailOptions = {
       from: `"AI Mental Health Companion" <${process.env.SMTP_USER}>`,
@@ -152,12 +160,26 @@ const sendPasswordResetEmail = async (to, resetToken, userName) => {
       `,
     };
 
+    console.log('Sending email with options:', {
+      from: mailOptions.from,
+      to: mailOptions.to,
+      subject: mailOptions.subject,
+    });
+
     const info = await transporter.sendMail(mailOptions);
-    console.log('Password reset email sent successfully:', info.messageId);
+    console.log('✓ Password reset email sent successfully!');
+    console.log('Message ID:', info.messageId);
+    console.log('Response:', info.response);
+    console.log('--- Email sent successfully ---\n');
+    
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('Error sending password reset email:', error);
-    throw new Error('Failed to send password reset email');
+    console.error('✗ Error sending password reset email:');
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    console.error('Error code:', error.code);
+    console.error('Full error:', error);
+    throw error;
   }
 };
 

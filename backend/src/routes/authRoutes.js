@@ -7,7 +7,7 @@
  */
 
 import express from 'express';
-import { register, login, updateUser, forgotPassword, resetPassword, refreshAccessToken, logout } from '../controllers/authController.js';
+import { register, login, updateUser, forgotPassword, resetPassword, refreshAccessToken, logout, googleAuth } from '../controllers/authController.js';
 import { validateRegister, validateLogin } from '../validators/userValidator.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import upload from '../middlewares/upload.js';
@@ -79,5 +79,13 @@ router.post('/refresh', refreshAccessToken);
  * Protected route - requires JWT authentication
  */
 router.post('/logout', authMiddleware, logout);
+
+/**
+ * POST /api/auth/google
+ * Authenticate with Google OAuth
+ * Body (JSON): { credential: Google ID token, rememberMe?: boolean }
+ * Rate limited: 5 requests per 15 minutes per IP
+ */
+router.post('/google', authLimiter, googleAuth);
 
 export default router;

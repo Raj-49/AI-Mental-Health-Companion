@@ -163,6 +163,22 @@ export const updateUserProfile = async (data: Partial<RegisterData>): Promise<{ 
   return response.data;
 };
 
+/**
+ * Google OAuth authentication
+ * POST /api/auth/google
+ */
+export const googleAuth = async (credential: string, rememberMe?: boolean): Promise<AuthResponse> => {
+  const response = await axiosClient.post<AuthResponse>('/auth/google', {
+    credential,
+    rememberMe,
+  });
+
+  // Store access token after successful Google auth (refresh token in httpOnly cookie)
+  setAccessToken(response.data.token);
+
+  return response.data;
+};
+
 export default {
   register,
   login,
@@ -171,4 +187,5 @@ export default {
   resetPassword,
   getUserProfile,
   updateUserProfile,
+  googleAuth,
 };

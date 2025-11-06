@@ -19,26 +19,32 @@ const app = express();
 const startTime = Date.now();
 
 // CORS configuration
+// Support both local and production frontend URLs
 const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:3001',
+  'http://localhost:5173',  // Vite default
+  'http://localhost:3000',  // Local frontend
+  process.env.LOCAL_FRONTEND_URL,
+  process.env.PRODUCTION_FRONTEND_URL,
   process.env.FRONTEND_URL,
-  process.env.CORS_ORIGIN
+  // Also support comma-separated CORS_ORIGIN for backward compatibility
+  ...(process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',').map(o => o.trim()) : [])
 ].filter(Boolean);
+
+console.log('Allowed CORS origins:', allowedOrigins);
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
+    // Allow requests with no origin (like mobile apps, Postman, or curl requests)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       console.log('CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true,
+  credentials: true, // Allow cookies
   optionsSuccessStatus: 200,
 };
 app.use(cors(corsOptions));

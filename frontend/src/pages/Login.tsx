@@ -9,6 +9,7 @@ import { Brain } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { AxiosError } from "axios";
+import GoogleOAuthButton from "@/components/GoogleOAuthButton";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -112,6 +113,19 @@ const Login = () => {
             <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  Or continue with
+                </span>
+              </div>
+            </div>
+
+            <GoogleOAuthButton rememberMe={formData.rememberMe} text="signin_with" />
 
             <div className="text-center text-sm text-muted-foreground">
               Don't have an account?{" "}

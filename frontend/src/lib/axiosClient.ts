@@ -2,7 +2,7 @@
  * Axios Client Configuration
  * 
  * Configures axios with:
- * - Base URL from environment variables
+ * - Base URL from environment variables (auto-detects local vs production)
  * - Request interceptor to attach access token
  * - Response interceptor to handle token refresh on 401 errors
  * - Automatic token refresh using httpOnly cookies
@@ -11,7 +11,13 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { jwtDecode } from 'jwt-decode';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+// Auto-detect environment and use appropriate API URL
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const API_BASE_URL = isLocalhost
+  ? (import.meta.env.VITE_API_BASE_URL_LOCAL || 'http://localhost:3001/api')
+  : (import.meta.env.VITE_API_BASE_URL_PRODUCTION || import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api');
+
+console.log('API Base URL:', API_BASE_URL, '(isLocalhost:', isLocalhost, ')');
 
 // Create axios instance
 const axiosClient = axios.create({

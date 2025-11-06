@@ -10,6 +10,8 @@ import { Brain, User, Camera } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { AxiosError } from "axios";
+import GoogleOAuthButton from "@/components/GoogleOAuthButton";
+import ImageCropper from "@/components/ImageCropper";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -25,6 +27,8 @@ const Register = () => {
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,15 +77,34 @@ const Register = () => {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setProfileImage(file);
       
-      // Create preview URL
+      // Create preview URL for cropper
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result as string);
+        setImageToCrop(reader.result as string);
+        setIsCropperOpen(true);
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleCropComplete = (croppedBlob: Blob) => {
+    // Convert blob to File
+    const file = new File([croppedBlob], "profile-image.jpg", { type: "image/jpeg" });
+    setProfileImage(file);
+    
+    // Create preview URL
+    const previewUrl = URL.createObjectURL(croppedBlob);
+    setImagePreview(previewUrl);
+    
+    // Close cropper
+    setIsCropperOpen(false);
+    setImageToCrop(null);
+  };
+
+  const handleCropperClose = () => {
+    setIsCropperOpen(false);
+    setImageToCrop(null);
   };
 
   return (
@@ -211,6 +234,19 @@ const Register = () => {
               {isLoading ? "Creating Account..." : "Create Account"}
             </Button>
 
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  Or continue with
+                </span>
+              </div>
+            </div>
+
+            <GoogleOAuthButton text="signup_with" />
+
             <div className="text-center text-sm text-muted-foreground">
               Already have an account?{" "}
               <Link to="/login" className="text-primary hover:underline font-medium">
@@ -220,6 +256,16 @@ const Register = () => {
           </form>
         </CardContent>
       </Card>
+
+      {/* Image Cropper Modal */}
+      {imageToCrop && (
+        <ImageCropper
+          image={imageToCrop}
+          isOpen={isCropperOpen}
+          onClose={handleCropperClose}
+          onCropComplete={handleCropComplete}
+        />
+      )}
     </div>
   );
 };

@@ -12,7 +12,15 @@ router.post("/profile", authMiddleware, upload.single("image"), async (req, res)
   try {
     const result = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
-        { folder: "user_profiles" },
+        { 
+          folder: "user_profiles",
+          // Ensure consistent dimensions: 400x400px, crop to fill
+          transformation: [
+            { width: 400, height: 400, crop: "fill", gravity: "face" },
+            { quality: "auto:good" },
+            { fetch_format: "auto" }
+          ]
+        },
         (error, result) => (error ? reject(error) : resolve(result))
       );
       streamifier.createReadStream(req.file.buffer).pipe(stream);
