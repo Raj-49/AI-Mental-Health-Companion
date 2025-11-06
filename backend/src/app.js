@@ -23,6 +23,7 @@ const startTime = Date.now();
 const allowedOrigins = [
   'http://localhost:5173',  // Vite default
   'http://localhost:3000',  // Local frontend
+  'https://ai-mental-health-companion-eivj.vercel.app', // Production frontend
   process.env.LOCAL_FRONTEND_URL,
   process.env.PRODUCTION_FRONTEND_URL,
   process.env.FRONTEND_URL,
@@ -45,6 +46,8 @@ const corsOptions = {
     }
   },
   credentials: true, // Allow cookies
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   optionsSuccessStatus: 200,
 };
 app.use(cors(corsOptions));
