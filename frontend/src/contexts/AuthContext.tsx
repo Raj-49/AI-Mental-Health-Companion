@@ -19,7 +19,6 @@ export interface AuthContextType {
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
-  setUser: (user: User | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,19 +28,8 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUserState] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  // Wrapper around setUser to add logging
-  const setUser = (newUser: User | null) => {
-    console.log('AuthContext: setUser called with:', {
-      id: newUser?.id,
-      email: newUser?.email,
-      fullName: newUser?.fullName,
-      profileImageUrl: newUser?.profileImageUrl,
-    });
-    setUserState(newUser);
-  };
 
   // Check if user is authenticated on mount
   useEffect(() => {
@@ -51,11 +39,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (token) {
         try {
           const userProfile = await getUserProfile();
-          console.log('AuthContext: Initial user profile loaded:', {
-            id: userProfile.id,
-            email: userProfile.email,
-            profileImageUrl: userProfile.profileImageUrl,
-          });
           setUser(userProfile);
         } catch (error) {
           console.error('Failed to fetch user profile:', error);
@@ -90,8 +73,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = async () => {
-    await logoutService();
+  const logout = () => {
+    logoutService();
     setUser(null);
   };
 
@@ -113,7 +96,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     register,
     logout,
     refreshUser,
-    setUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

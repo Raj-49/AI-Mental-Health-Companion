@@ -1,4 +1,4 @@
-import { MessageCircle, BookOpen, TrendingUp, Lightbulb, User, LogOut } from "lucide-react";
+import { MessageCircle, BookOpen, TrendingUp, Lightbulb, User, LogOut, Target, Sparkles, Bell } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -22,7 +22,10 @@ const DashboardSidebar = () => {
     { to: "/dashboard/chat", icon: MessageCircle, label: "AI Chat" },
     { to: "/dashboard/journals", icon: BookOpen, label: "Journals" },
     { to: "/dashboard/mood-logs", icon: TrendingUp, label: "Mood Logs" },
+    { to: "/dashboard/therapy-plans", icon: Target, label: "Therapy Plans" },
     { to: "/dashboard/insights", icon: Lightbulb, label: "Insights" },
+    { to: "/dashboard/recommendations", icon: Sparkles, label: "Recommendations" },
+    { to: "/dashboard/notifications", icon: Bell, label: "Notifications" },
   ];
 
   return (

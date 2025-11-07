@@ -10,6 +10,12 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import journalRoutes from './routes/journalRoutes.js';
+import moodRoutes from './routes/moodRoutes.js';
+import therapyRoutes from './routes/therapyRoutes.js';
+import recommendationRoutes from './routes/recommendationRoutes.js';
+import insightRoutes from './routes/insightRoutes.js';
+import preferenceRoutes from './routes/preferenceRoutes.js';
 import errorHandler from './middlewares/errorHandler.js';
 
 // Initialize Express app
@@ -64,6 +70,12 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/journals', journalRoutes);
+app.use('/api/moods', moodRoutes);
+app.use('/api/therapy', therapyRoutes);
+app.use('/api/recommendations', recommendationRoutes);
+app.use('/api/insights', insightRoutes);
+app.use('/api/preferences', preferenceRoutes);
 
 // Root endpoint
 app.get('/api', (req, res) => {
@@ -74,6 +86,12 @@ app.get('/api', (req, res) => {
       health: '/health',
       auth: '/api/auth',
       users: '/api/users',
+      journals: '/api/journals',
+      moods: '/api/moods',
+      therapy: '/api/therapy',
+      recommendations: '/api/recommendations',
+      insights: '/api/insights',
+      preferences: '/api/preferences',
     },
   });
 });

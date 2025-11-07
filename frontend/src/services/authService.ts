@@ -10,7 +10,7 @@
  * - Get User Profile
  */
 
-import axiosClient, { setAccessToken, clearTokens } from '../lib/axiosClient';
+import axiosClient, { setTokens, clearTokens } from '../lib/axiosClient';
 
 export interface User {
   id: string;
@@ -74,8 +74,8 @@ export const register = async (data: RegisterData): Promise<AuthResponse> => {
     },
   });
 
-  // Store access token after successful registration (refresh token in httpOnly cookie)
-  setAccessToken(response.data.token);
+  // Store tokens after successful registration
+  setTokens(response.data.token, response.data.refreshToken);
 
   return response.data;
 };
@@ -84,28 +84,37 @@ export const register = async (data: RegisterData): Promise<AuthResponse> => {
  * Login user
  * POST /api/auth/login
  */
-export const login = async (data: LoginData & { rememberMe?: boolean }): Promise<AuthResponse> => {
+export const login = async (data: LoginData): Promise<AuthResponse> => {
   const response = await axiosClient.post<AuthResponse>('/auth/login', data);
 
-  // Store access token after successful login (refresh token in httpOnly cookie)
-  setAccessToken(response.data.token);
+  // Store tokens after successful login
+  setTokens(response.data.token, response.data.refreshToken);
+
+  return response.data;
+};
+
+/**
+ * Google OAuth Login
+ * POST /api/auth/google
+ */
+export const googleLogin = async (credential: string): Promise<AuthResponse> => {
+  const response = await axiosClient.post<AuthResponse>('/auth/google', {
+    credential,
+    rememberMe: true,
+  });
+
+  // Store tokens after successful Google login
+  setTokens(response.data.token, response.data.refreshToken);
 
   return response.data;
 };
 
 /**
  * Logout user
- * POST /api/auth/logout
- * Clears tokens from storage and server
+ * Clears tokens from storage
  */
-export const logout = async (): Promise<void> => {
-  try {
-    await axiosClient.post('/auth/logout');
-  } catch (error) {
-    console.error('Logout API error:', error);
-  } finally {
-    clearTokens();
-  }
+export const logout = (): void => {
+  clearTokens();
 };
 
 /**
@@ -125,6 +134,18 @@ export const resetPassword = async (data: ResetPasswordData): Promise<{ message:
   const response = await axiosClient.post<{ message: string }>(
     `/auth/reset-password?token=${data.token}`,
     { password: data.password }
+  );
+  return response.data;
+};
+
+/**
+ * Refresh access token
+ * POST /api/auth/refresh
+ */
+export const refreshAccessToken = async (refreshToken: string): Promise<{ accessToken: string; refreshToken?: string }> => {
+  const response = await axiosClient.post<{ accessToken: string; refreshToken?: string }>(
+    '/auth/refresh',
+    { refreshToken }
   );
   return response.data;
 };
@@ -163,29 +184,14 @@ export const updateUserProfile = async (data: Partial<RegisterData>): Promise<{ 
   return response.data;
 };
 
-/**
- * Google OAuth authentication
- * POST /api/auth/google
- */
-export const googleAuth = async (credential: string, rememberMe?: boolean): Promise<AuthResponse> => {
-  const response = await axiosClient.post<AuthResponse>('/auth/google', {
-    credential,
-    rememberMe,
-  });
-
-  // Store access token after successful Google auth (refresh token in httpOnly cookie)
-  setAccessToken(response.data.token);
-
-  return response.data;
-};
-
 export default {
   register,
   login,
+  googleLogin,
   logout,
   forgotPassword,
   resetPassword,
+  refreshAccessToken,
   getUserProfile,
   updateUserProfile,
-  googleAuth,
 };

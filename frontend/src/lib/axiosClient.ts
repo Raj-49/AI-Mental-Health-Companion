@@ -2,22 +2,22 @@
  * Axios Client Configuration
  * 
  * Configures axios with:
- * - Base URL from environment variables (auto-detects local vs production)
+ * - Base URL from environment variables
  * - Request interceptor to attach access token
  * - Response interceptor to handle token refresh on 401 errors
- * - Automatic token refresh using httpOnly cookies
  */
 
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { jwtDecode } from 'jwt-decode';
 
-// Auto-detect environment and use appropriate API URL
-const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-const API_BASE_URL = isLocalhost
-  ? (import.meta.env.VITE_API_BASE_URL_LOCAL || 'http://localhost:3001/api')
-  : (import.meta.env.VITE_API_BASE_URL_PRODUCTION || import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api');
+// Auto-detect environment and set API base URL
+const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+const API_BASE_URL = isProduction
+  ? import.meta.env.VITE_API_BASE_URL_PRODUCTION || 'https://ai-mental-health-companion.vercel.app/api'
+  : import.meta.env.VITE_API_BASE_URL_LOCAL || 'http://localhost:3001/api';
 
-console.log('API Base URL:', API_BASE_URL, '(isLocalhost:', isLocalhost, ')');
+console.log('Environment:', isProduction ? 'Production' : 'Development');
+console.log('API Base URL:', API_BASE_URL);
 
 // Create axios instance
 const axiosClient = axios.create({
@@ -25,30 +25,42 @@ const axiosClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Enable sending cookies (for httpOnly refresh token)
+  withCredentials: true, // Enable sending cookies (for refresh token if using httpOnly cookies)
 });
 
-// Token management in memory (only access token now)
+// Token management in memory
 let accessToken: string | null = null;
+let refreshToken: string | null = null;
 
-// Initialize token from localStorage on app load
+// Initialize tokens from localStorage on app load
 export const initializeTokens = () => {
   accessToken = localStorage.getItem('accessToken');
+  refreshToken = localStorage.getItem('refreshToken');
 };
 
-// Set access token (called after login/register)
-export const setAccessToken = (token: string) => {
-  accessToken = token;
-  localStorage.setItem('accessToken', token);
+// Set tokens (called after login/register)
+export const setTokens = (access: string, refresh?: string) => {
+  accessToken = access;
+  localStorage.setItem('accessToken', access);
+  
+  if (refresh) {
+    refreshToken = refresh;
+    localStorage.setItem('refreshToken', refresh);
+  }
 };
 
 // Get access token
 export const getAccessToken = () => accessToken;
 
+// Get refresh token
+export const getRefreshToken = () => refreshToken;
+
 // Clear tokens (called on logout)
 export const clearTokens = () => {
   accessToken = null;
+  refreshToken = null;
   localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
 };
 
 // Check if token is expired
@@ -56,34 +68,33 @@ const isTokenExpired = (token: string): boolean => {
   try {
     const decoded: { exp: number } = jwtDecode(token);
     const currentTime = Date.now() / 1000;
-    // Consider token expired if less than 1 minute remaining
-    return decoded.exp < currentTime + 60;
+    return decoded.exp < currentTime;
   } catch {
     return true;
   }
 };
 
-// Refresh access token using httpOnly cookie
+// Refresh access token
 const refreshAccessToken = async (): Promise<string | null> => {
   try {
-    // Call refresh endpoint (refresh token sent automatically via httpOnly cookie)
-    const response = await axios.post(
-      `${API_BASE_URL}/auth/refresh`,
-      {},
-      { withCredentials: true }
-    );
+    const refresh = getRefreshToken();
+    if (!refresh) {
+      throw new Error('No refresh token available');
+    }
 
-    const newAccessToken = response.data.token;
-    setAccessToken(newAccessToken);
+    // Call refresh token endpoint
+    const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+      refreshToken: refresh,
+    });
+
+    const newAccessToken = response.data.accessToken;
+    setTokens(newAccessToken, response.data.refreshToken || refresh);
     
     return newAccessToken;
   } catch (error) {
-    console.error('Token refresh failed:', error);
     clearTokens();
-    // Redirect to login
-    if (window.location.pathname !== '/login') {
-      window.location.href = '/login';
-    }
+    // Redirect to login or trigger logout
+    window.location.href = '/login';
     return null;
   }
 };
@@ -95,7 +106,7 @@ axiosClient.interceptors.request.use(
 
     // Check if token exists and is expired
     if (token && isTokenExpired(token)) {
-      console.log('Access token expired, refreshing...');
+      // Try to refresh token
       token = await refreshAccessToken();
     }
 

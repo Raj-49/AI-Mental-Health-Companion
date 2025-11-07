@@ -10,7 +10,6 @@ import { Brain, User, Camera } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { AxiosError } from "axios";
-import GoogleOAuthButton from "@/components/GoogleOAuthButton";
 import ImageCropper from "@/components/ImageCropper";
 
 const Register = () => {
@@ -26,9 +25,9 @@ const Register = () => {
   });
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
-  const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [showCropper, setShowCropper] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,32 +77,36 @@ const Register = () => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       
-      // Create preview URL for cropper
+      // Create preview URL for cropping
       const reader = new FileReader();
       reader.onloadend = () => {
         setImageToCrop(reader.result as string);
-        setIsCropperOpen(true);
+        setShowCropper(true);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleCropComplete = (croppedBlob: Blob) => {
-    // Convert blob to File
-    const file = new File([croppedBlob], "profile-image.jpg", { type: "image/jpeg" });
+  const handleCropComplete = (croppedImage: Blob) => {
+    // Convert blob to file
+    const file = new File([croppedImage], 'profile-image.jpg', { type: 'image/jpeg' });
     setProfileImage(file);
     
     // Create preview URL
-    const previewUrl = URL.createObjectURL(croppedBlob);
+    const previewUrl = URL.createObjectURL(croppedImage);
     setImagePreview(previewUrl);
     
-    // Close cropper
-    setIsCropperOpen(false);
+    setShowCropper(false);
     setImageToCrop(null);
+
+    toast({
+      title: "Image ready",
+      description: "Profile image cropped and ready to upload",
+    });
   };
 
-  const handleCropperClose = () => {
-    setIsCropperOpen(false);
+  const handleCropCancel = () => {
+    setShowCropper(false);
     setImageToCrop(null);
   };
 
@@ -234,19 +237,6 @@ const Register = () => {
               {isLoading ? "Creating Account..." : "Create Account"}
             </Button>
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  Or continue with
-                </span>
-              </div>
-            </div>
-
-            <GoogleOAuthButton text="signup_with" />
-
             <div className="text-center text-sm text-muted-foreground">
               Already have an account?{" "}
               <Link to="/login" className="text-primary hover:underline font-medium">
@@ -261,9 +251,9 @@ const Register = () => {
       {imageToCrop && (
         <ImageCropper
           image={imageToCrop}
-          isOpen={isCropperOpen}
-          onClose={handleCropperClose}
           onCropComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+          open={showCropper}
         />
       )}
     </div>

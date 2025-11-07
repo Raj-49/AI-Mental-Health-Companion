@@ -2,14 +2,14 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link, useNavigate } from "react-router-dom";
 import { Brain } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { AxiosError } from "axios";
-import GoogleOAuthButton from "@/components/GoogleOAuthButton";
+import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
+import { googleLogin } from "@/services/authService";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -17,7 +17,6 @@ const Login = () => {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    rememberMe: false,
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -46,6 +45,49 @@ const Login = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    if (!credentialResponse.credential) {
+      toast({
+        title: "Google Sign-In Failed",
+        description: "No credential received from Google",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      await googleLogin(credentialResponse.credential);
+      
+      toast({
+        title: "Welcome!",
+        description: "You've successfully signed in with Google.",
+      });
+      
+      navigate("/dashboard");
+    } catch (error) {
+      const axiosError = error as AxiosError<{ error: string; message: string }>;
+      const errorMessage = axiosError.response?.data?.error || axiosError.response?.data?.message || "Google sign-in failed. Please try again.";
+      
+      toast({
+        title: "Google Sign-In Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    toast({
+      title: "Google Sign-In Failed",
+      description: "An error occurred during Google sign-in. Please try again.",
+      variant: "destructive",
+    });
   };
 
   return (
@@ -94,27 +136,11 @@ const Login = () => {
               />
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="rememberMe" 
-                checked={formData.rememberMe}
-                onCheckedChange={(checked) => 
-                  setFormData({ ...formData, rememberMe: checked as boolean })
-                }
-              />
-              <Label 
-                htmlFor="rememberMe" 
-                className="text-sm font-normal cursor-pointer"
-              >
-                Remember me for 30 days
-              </Label>
-            </div>
-
             <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
 
-            <div className="relative">
+            <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t" />
               </div>
@@ -125,7 +151,15 @@ const Login = () => {
               </div>
             </div>
 
-            <GoogleOAuthButton rememberMe={formData.rememberMe} text="signin_with" />
+            <div className="flex justify-center">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                size="large"
+                width="384"
+                text="signin_with"
+              />
+            </div>
 
             <div className="text-center text-sm text-muted-foreground">
               Don't have an account?{" "}
