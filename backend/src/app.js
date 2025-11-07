@@ -17,6 +17,7 @@ import recommendationRoutes from './routes/recommendationRoutes.js';
 import insightRoutes from './routes/insightRoutes.js';
 import preferenceRoutes from './routes/preferenceRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import aiChatRoutes from './routes/aiChatRoutes.js';
 import errorHandler from './middlewares/errorHandler.js';
 
 // Initialize Express app
@@ -78,6 +79,7 @@ app.use('/api/recommendations', recommendationRoutes);
 app.use('/api/insights', insightRoutes);
 app.use('/api/preferences', preferenceRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/ai', aiChatRoutes);
 
 // Root endpoint
 app.get('/api', (req, res) => {
@@ -95,6 +97,7 @@ app.get('/api', (req, res) => {
       insights: '/api/insights',
       preferences: '/api/preferences',
       notifications: '/api/notifications',
+      ai: '/api/ai',
     },
   });
 });

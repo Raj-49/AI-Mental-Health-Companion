@@ -1,13 +1,17 @@
 import { useState, useEffect } from "react";
-import { User, Mail, Calendar, Edit, Camera } from "lucide-react";
+import { User, Mail, Calendar, Edit, Camera, Clock, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { getUserProfile, updateUserProfile } from "@/services/authService";
+import { getEmailPreferences, updateEmailPreferences } from "@/services/aiChatService";
 
 const Profile = () => {
   const { user: authUser } = useAuth();
@@ -23,9 +27,17 @@ const Profile = () => {
     age: "",
     gender: ""
   });
+  const [emailPrefs, setEmailPrefs] = useState({
+    weeklyEmailEnabled: false,
+    therapyPlanInEmail: false,
+    emailScheduleTime: "08:00",
+    emailScheduleDays: [0] as number[],
+  });
+  const [isEditingEmail, setIsEditingEmail] = useState(false);
 
   useEffect(() => {
     loadProfile();
+    loadEmailPreferences();
   }, []);
 
   const loadProfile = async () => {
@@ -52,6 +64,42 @@ const Profile = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const loadEmailPreferences = async () => {
+    try {
+      const prefs = await getEmailPreferences();
+      setEmailPrefs(prefs);
+    } catch (error) {
+      console.error("Failed to load email preferences:", error);
+    }
+  };
+
+  const handleSaveEmailPrefs = async () => {
+    try {
+      await updateEmailPreferences(emailPrefs);
+      toast({
+        title: "Email preferences updated",
+        description: "Your email notification settings have been saved",
+      });
+      setIsEditingEmail(false);
+    } catch (error) {
+      console.error("Failed to update email preferences:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update email preferences",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const toggleDay = (day: number) => {
+    setEmailPrefs((prev) => {
+      const days = prev.emailScheduleDays.includes(day)
+        ? prev.emailScheduleDays.filter((d) => d !== day)
+        : [...prev.emailScheduleDays, day];
+      return { ...prev, emailScheduleDays: days.length > 0 ? days : [0] };
+    });
   };
 
   const handleSave = async () => {
@@ -218,6 +266,144 @@ const Profile = () => {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="w-5 h-5" />
+                Email Notifications
+              </CardTitle>
+              <CardDescription>
+                Configure your weekly AI summary email preferences
+              </CardDescription>
+            </div>
+            {!isEditingEmail ? (
+              <Button onClick={() => setIsEditingEmail(true)} variant="outline" size="sm" className="w-full sm:w-auto">
+                <Edit className="w-4 h-4 mr-2" />
+                Edit
+              </Button>
+            ) : (
+              <div className="flex gap-2 w-full sm:w-auto">
+                <Button
+                  onClick={() => {
+                    setIsEditingEmail(false);
+                    loadEmailPreferences();
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 sm:flex-none"
+                >
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveEmailPrefs} size="sm" className="flex-1 sm:flex-none">
+                  Save
+                </Button>
+              </div>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="weekly-email" className="text-base">
+                Weekly AI Summary
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Receive personalized insights and recommendations via email
+              </p>
+            </div>
+            <Switch
+              id="weekly-email"
+              checked={emailPrefs.weeklyEmailEnabled}
+              onCheckedChange={(checked) =>
+                setEmailPrefs({ ...emailPrefs, weeklyEmailEnabled: checked })
+              }
+              disabled={!isEditingEmail}
+            />
+          </div>
+
+          {emailPrefs.weeklyEmailEnabled && (
+            <>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="therapy-plan" className="text-base">
+                    Include Therapy Plans
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Add your therapy plan progress in weekly summaries
+                  </p>
+                </div>
+                <Switch
+                  id="therapy-plan"
+                  checked={emailPrefs.therapyPlanInEmail}
+                  onCheckedChange={(checked) =>
+                    setEmailPrefs({ ...emailPrefs, therapyPlanInEmail: checked })
+                  }
+                  disabled={!isEditingEmail}
+                />
+              </div>
+
+              <div className="space-y-3">
+                <Label className="text-base flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Schedule Time
+                </Label>
+                <Input
+                  type="time"
+                  value={emailPrefs.emailScheduleTime}
+                  onChange={(e) =>
+                    setEmailPrefs({ ...emailPrefs, emailScheduleTime: e.target.value })
+                  }
+                  disabled={!isEditingEmail}
+                  className="max-w-full sm:max-w-[200px]"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Time when you want to receive your weekly summary
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <Label className="text-base flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Schedule Days
+                </Label>
+                <div className="grid grid-cols-4 sm:flex sm:flex-wrap gap-2">
+                  {[
+                    { label: "Sun", value: 0 },
+                    { label: "Mon", value: 1 },
+                    { label: "Tue", value: 2 },
+                    { label: "Wed", value: 3 },
+                    { label: "Thu", value: 4 },
+                    { label: "Fri", value: 5 },
+                    { label: "Sat", value: 6 },
+                  ].map((day) => (
+                    <Button
+                      key={day.value}
+                      type="button"
+                      variant={
+                        emailPrefs.emailScheduleDays.includes(day.value)
+                          ? "default"
+                          : "outline"
+                      }
+                      size="sm"
+                      onClick={() => isEditingEmail && toggleDay(day.value)}
+                      disabled={!isEditingEmail}
+                      className="w-full sm:w-14"
+                    >
+                      {day.label}
+                    </Button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Select one or more days to receive your summary
+                </p>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

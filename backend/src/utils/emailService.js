@@ -2,12 +2,12 @@ import nodemailer from 'nodemailer';
 
 // Create reusable transporter using SMTP configuration
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT, 10),
-  secure: false, // Use TLS
+  host: process.env.EMAIL_HOST || process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: parseInt(process.env.EMAIL_PORT || process.env.SMTP_PORT || '465', 10),
+  secure: process.env.EMAIL_PORT === '465' ? true : false, // true for 465, false for other ports
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+    user: process.env.EMAIL_USER || process.env.SMTP_USER,
+    pass: process.env.EMAIL_PASS || process.env.SMTP_PASS,
   },
 });
 
@@ -314,6 +314,33 @@ const sendWelcomeEmail = async (to, userName) => {
     console.error('Error sending welcome email:', error);
     // Don't throw error for welcome email - it's not critical
     return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Generic send email function
+ * @param {Object} options - Email options
+ * @param {string} options.to - Recipient email address
+ * @param {string} options.subject - Email subject
+ * @param {string} options.html - HTML content
+ * @param {string} options.text - Plain text content (optional)
+ */
+export const sendEmail = async ({ to, subject, html, text }) => {
+  try {
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || `"AI Mental Health Companion" <${process.env.EMAIL_USER}>`,
+      to,
+      subject,
+      html,
+      text: text || '', // Optional plain text version
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Email sent successfully:', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('Error sending email:', error);
+    throw error;
   }
 };
 

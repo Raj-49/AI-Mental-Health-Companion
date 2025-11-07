@@ -8,6 +8,7 @@
 import dotenv from 'dotenv';
 import app from './app.js';
 import prisma from './config/prismaClient.js';
+import { initializeEmailAgent } from './jobs/emailAgent.js';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -24,6 +25,11 @@ const startServer = async () => {
     // Test database connection
     await prisma.$connect();
     console.log('✓ Database connected successfully');
+
+    // Initialize email agent for weekly summaries
+    if (NODE_ENV !== 'production' || process.env.VERCEL !== '1') {
+      initializeEmailAgent();
+    }
 
     // Start listening
     app.listen(PORT, () => {
