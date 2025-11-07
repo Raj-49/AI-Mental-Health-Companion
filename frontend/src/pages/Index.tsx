@@ -1,11 +1,28 @@
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Brain, MessageCircle, BookOpen, TrendingUp, Shield } from "lucide-react";
 import heroImage from "@/assets/hero-wellness.jpg";
+import { useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
+  const { isAuthenticated, isLoading } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect to dashboard if already authenticated
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, isLoading, navigate]);
+
+  // Force light mode on homepage
+  useEffect(() => {
+    document.documentElement.classList.remove("dark");
+  }, []);
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen">{/* Hero Section */}
       {/* Hero Section */}
       <section className="relative overflow-hidden gradient-hero">
         <div className="absolute inset-0 z-0">
@@ -18,8 +35,21 @@ const Index = () => {
         
         <div className="container relative z-10 mx-auto px-4 py-20 md:py-32">
           <div className="max-w-3xl mx-auto text-center">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-primary/10 rounded-full mb-8">
-              <Brain className="w-10 h-10 text-primary" />
+            <div className="inline-flex items-center justify-center mb-8">
+              <img 
+                src="/logo.png" 
+                alt="MindCare Logo" 
+                className="h-20 w-auto object-contain"
+                onError={(e) => {
+                  // Fallback to Brain icon if logo doesn't exist
+                  e.currentTarget.style.display = 'none';
+                  const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                  if (fallback) fallback.style.display = 'flex';
+                }}
+              />
+              <div className="w-20 h-20 bg-primary/10 rounded-full items-center justify-center hidden">
+                <Brain className="w-10 h-10 text-primary" />
+              </div>
             </div>
             
             <h1 className="text-4xl md:text-6xl font-bold mb-6 text-foreground">

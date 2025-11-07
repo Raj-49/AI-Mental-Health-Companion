@@ -21,6 +21,7 @@ export interface User {
   profileImageUrl: string | null;
   createdAt: string;
   updatedAt: string;
+  googleId?: string | null;
 }
 
 export interface RegisterData {
@@ -35,6 +36,7 @@ export interface RegisterData {
 export interface LoginData {
   email: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 export interface AuthResponse {
@@ -155,8 +157,8 @@ export const refreshAccessToken = async (refreshToken: string): Promise<{ access
  * GET /api/users/me
  */
 export const getUserProfile = async (): Promise<User> => {
-  const response = await axiosClient.get<User>('/users/me');
-  return response.data;
+  const response = await axiosClient.get<{ message: string; user: User }>('/users/me');
+  return response.data.user;
 };
 
 /**

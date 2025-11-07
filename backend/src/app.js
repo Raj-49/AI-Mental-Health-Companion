@@ -16,6 +16,7 @@ import therapyRoutes from './routes/therapyRoutes.js';
 import recommendationRoutes from './routes/recommendationRoutes.js';
 import insightRoutes from './routes/insightRoutes.js';
 import preferenceRoutes from './routes/preferenceRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 import errorHandler from './middlewares/errorHandler.js';
 
 // Initialize Express app
@@ -76,6 +77,7 @@ app.use('/api/therapy', therapyRoutes);
 app.use('/api/recommendations', recommendationRoutes);
 app.use('/api/insights', insightRoutes);
 app.use('/api/preferences', preferenceRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Root endpoint
 app.get('/api', (req, res) => {
@@ -92,6 +94,7 @@ app.get('/api', (req, res) => {
       recommendations: '/api/recommendations',
       insights: '/api/insights',
       preferences: '/api/preferences',
+      notifications: '/api/notifications',
     },
   });
 });

@@ -1,6 +1,10 @@
+import { useState, useEffect } from "react";
 import { TrendingUp, Calendar, BookOpen, Smile } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { getJournalStats } from "@/services/journalService";
+import { getMoodStats } from "@/services/moodService";
+import { toast } from "@/hooks/use-toast";
 
 const moodData = [
   { name: "Mon", mood: 7 },
@@ -20,6 +24,52 @@ const moodDistribution = [
 ];
 
 const Insights = () => {
+  const [journalStats, setJournalStats] = useState<{ totalCount: number } | null>(null);
+  const [moodStats, setMoodStats] = useState<{ 
+    totalLogs: number; 
+    averageEnergy: number;
+    moodTimeline: Array<{ date: string; energyLevel: number }>;
+    moodBreakdown: Array<{ mood: string; count: number; percentage: string }>;
+  } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadStats();
+  }, []);
+
+  const loadStats = async () => {
+    try {
+      setIsLoading(true);
+      const [journals, moods] = await Promise.all([
+        getJournalStats(),
+        getMoodStats(7) // Last 7 days
+      ]);
+      setJournalStats(journals);
+      setMoodStats(moods);
+    } catch (error) {
+      console.error("Failed to load stats:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load statistics",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Format mood timeline for chart
+  const moodChartData = moodStats?.moodTimeline.map(item => ({
+    name: new Date(item.date).toLocaleDateString('en-US', { weekday: 'short' }),
+    mood: item.energyLevel
+  })) || moodData;
+
+  // Format mood distribution for pie chart
+  const moodPieData = moodStats?.moodBreakdown.map((item, index) => ({
+    name: item.mood,
+    value: item.count,
+    color: moodDistribution[index % moodDistribution.length]?.color || "hsl(var(--primary))"
+  })) || moodDistribution;
   return (
     <div className="p-6 space-y-6">
       <div>
@@ -34,8 +84,8 @@ const Insights = () => {
             <BookOpen className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">24</div>
-            <p className="text-xs text-muted-foreground">+3 this week</p>
+            <div className="text-2xl font-bold">{isLoading ? "..." : journalStats?.totalCount || 0}</div>
+            <p className="text-xs text-muted-foreground">All time entries</p>
           </CardContent>
         </Card>
 
@@ -45,30 +95,34 @@ const Insights = () => {
             <Smile className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">47</div>
-            <p className="text-xs text-muted-foreground">Daily average: 6.7</p>
+            <div className="text-2xl font-bold">{isLoading ? "..." : moodStats?.totalLogs || 0}</div>
+            <p className="text-xs text-muted-foreground">Last 7 days</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Check-in Streak</CardTitle>
+            <CardTitle className="text-sm font-medium">Avg Energy Level</CardTitle>
             <Calendar className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12 days</div>
-            <p className="text-xs text-muted-foreground">Keep it up!</p>
+            <div className="text-2xl font-bold">
+              {isLoading ? "..." : moodStats?.averageEnergy ? moodStats.averageEnergy.toFixed(1) : "N/A"}
+            </div>
+            <p className="text-xs text-muted-foreground">Out of 10</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Overall Trend</CardTitle>
+            <CardTitle className="text-sm font-medium">Most Common Mood</CardTitle>
             <TrendingUp className="w-4 h-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">+12%</div>
-            <p className="text-xs text-muted-foreground">Improvement this month</p>
+            <div className="text-2xl font-bold">
+              {isLoading ? "..." : moodStats?.moodBreakdown[0]?.mood || "N/A"}
+            </div>
+            <p className="text-xs text-muted-foreground">This week</p>
           </CardContent>
         </Card>
       </div>
@@ -81,7 +135,7 @@ const Insights = () => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={moodData}>
+              <BarChart data={moodChartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis domain={[0, 10]} />
@@ -101,7 +155,7 @@ const Insights = () => {
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>
                 <Pie
-                  data={moodDistribution}
+                  data={moodPieData}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -110,7 +164,7 @@ const Insights = () => {
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {moodDistribution.map((entry, index) => (
+                  {moodPieData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>

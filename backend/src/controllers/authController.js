@@ -179,6 +179,7 @@ export const login = async (req, res, next) => {
       age: user.age,
       gender: user.gender,
       profileImageUrl: user.profileImageUrl,
+      googleId: user.googleId,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -553,9 +554,27 @@ export const googleAuth = async (req, res, next) => {
       console.log('Linking Google account to existing user...');
       user = await prisma.user.update({
         where: { id: user.id },
-        data: { googleId },
+        data: { 
+          googleId,
+          // Update profile data from Google if not set
+          fullName: user.fullName || name || null,
+          profileImageUrl: user.profileImageUrl || profileImageUrl || null,
+        },
       });
-      console.log('✓ Google account linked');
+      console.log('✓ Google account linked and profile updated');
+    }
+    
+    // If user exists with Google ID, update their profile data from Google
+    if (user && user.googleId) {
+      console.log('Updating Google user profile data...');
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { 
+          fullName: name || user.fullName,
+          profileImageUrl: profileImageUrl || user.profileImageUrl,
+        },
+      });
+      console.log('✓ Google user profile updated');
     }
 
     // If user doesn't exist, create new user
@@ -617,6 +636,7 @@ export const googleAuth = async (req, res, next) => {
       age: user.age,
       gender: user.gender,
       profileImageUrl: user.profileImageUrl,
+      googleId: user.googleId,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -626,6 +646,7 @@ export const googleAuth = async (req, res, next) => {
       fullName: userResponse.fullName,
       email: userResponse.email,
       profileImageUrl: userResponse.profileImageUrl,
+      googleId: userResponse.googleId,
     });
     console.log('✓ Google authentication successful');
     console.log('=== END GOOGLE OAUTH REQUEST ===\n');

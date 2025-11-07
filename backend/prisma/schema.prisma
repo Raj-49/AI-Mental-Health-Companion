@@ -51,6 +51,7 @@ model User {
   therapyPlans     TherapyPlan[]
   preferences      UserPreference?
   insights         Insight[]
+  notifications    Notification[]
 }
 
 // JOURNAL ENTRIES
@@ -146,4 +147,17 @@ model Insight {
   generatedAt        DateTime   @default(now()) @map("generated_at")
 
   user               User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// NOTIFICATIONS
+model Notification {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @map("user_id")
+  title       String
+  message     String
+  isRead      Boolean   @default(false) @map("is_read")
+  type        String?   // e.g., "reminder", "achievement", "system"
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

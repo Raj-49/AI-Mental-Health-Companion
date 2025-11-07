@@ -46,7 +46,17 @@ const ForgotPassword = () => {
       <Card className="w-full max-w-md shadow-soft">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+            <img 
+              src="/logo.png" 
+              alt="MindCare Logo" 
+              className="h-16 w-auto object-contain"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                if (fallback) fallback.style.display = 'flex';
+              }}
+            />
+            <div className="w-16 h-16 bg-primary/10 rounded-full items-center justify-center hidden">
               <Brain className="w-8 h-8 text-primary" />
             </div>
           </div>

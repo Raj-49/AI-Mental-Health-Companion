@@ -57,6 +57,7 @@ export const getCurrentUser = async (req, res, next) => {
         age: true,
         gender: true,
         profileImageUrl: true,
+        googleId: true,
         createdAt: true,
         updatedAt: true,
         preferences: {
