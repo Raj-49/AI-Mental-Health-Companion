@@ -26,28 +26,47 @@ const app = express();
 // Track server start time for uptime calculation
 const startTime = Date.now();
 
-// CORS configuration - Allow all origins in production for now (will restrict later)
+// CORS configuration - Use environment variables for allowed origins
 console.log('Environment:', process.env.NODE_ENV);
 console.log('Vercel:', process.env.VERCEL);
 
-// Simple CORS for debugging - allow all Vercel domains
+// Get allowed origins from environment variables
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  process.env.PRODUCTION_FRONTEND_URL,
+  process.env.LOCAL_FRONTEND_URL,
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://localhost:5174',
+].filter(Boolean); // Remove undefined values
+
+console.log('Allowed CORS Origins:', allowedOrigins);
+
+// CORS middleware with environment-based origins
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  
-  // Allow all Vercel domains and localhost
-  if (!origin || origin.includes('.vercel.app') || origin.includes('localhost')) {
+
+  // Check if origin is allowed
+  const isAllowed = !origin ||
+    allowedOrigins.includes(origin) ||
+    origin.includes('.vercel.app') || // Allow Vercel preview deployments
+    origin.includes('localhost');
+
+  if (isAllowed) {
     res.header('Access-Control-Allow-Origin', origin || '*');
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
     res.header('Access-Control-Expose-Headers', 'Set-Cookie');
+  } else {
+    console.warn(`CORS: Blocked origin: ${origin}`);
   }
-  
+
   // Handle preflight
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
   }
-  
+
   next();
 });
 
