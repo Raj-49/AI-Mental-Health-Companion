@@ -19,8 +19,7 @@ const getEligibleUsers = async () => {
     // Get users who have enabled weekly emails
     const users = await prisma.user.findMany({
       where: {
-        weeklyEmailEnabled: true,
-        email: { not: null }
+        weeklyEmailEnabled: true
       },
       include: {
         preferences: true

@@ -6,10 +6,14 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// Get the Gemini model
+// Get the Gemini model - use models that work with current SDK
+const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 const model = genAI.getGenerativeModel({ 
-  model: process.env.GEMINI_MODEL || "gemini-1.5-pro" 
+  model: modelName
 });
+
+// Log the model being used
+console.log(`✓ Gemini AI initialized with model: ${modelName}`);
 
 /**
  * Generate AI chat response
@@ -45,7 +49,18 @@ export const generateChatResponse = async (message, context = "", history = []) 
     return text;
   } catch (error) {
     console.error("Gemini AI Error:", error);
-    throw new Error("Failed to generate AI response");
+
+    const err = new Error("AI service unavailable. Please try again later.");
+    err.statusCode = 503;
+
+    if (
+      typeof error?.message === 'string' &&
+      error.message.toLowerCase().includes('user location is not supported')
+    ) {
+      err.message = "AI service is not available in this region.";
+    }
+
+    throw err;
   }
 };
 
